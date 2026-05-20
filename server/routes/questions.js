@@ -121,4 +121,35 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+router.delete('/:id', authMiddleware, async (req, res) => {
+  try {
+    const doc = await db.collection('questions').doc(req.params.id).get();
+    if (!doc.exists) {
+      return res.status(404).json({ message: 'Question not found' });
+    }
+
+    const question = doc.data();
+    const isOwner = question.postedBy === req.user.id;
+    const isAdmin = req.user.role === 'admin';
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: 'You do not have permission to delete this question' });
+    }
+
+    // Delete all answers for this question
+    const answersSnapshot = await db.collection('answers').where('questionId', '==', req.params.id).get();
+    for (const answerDoc of answersSnapshot.docs) {
+      await answerDoc.ref.delete();
+    }
+
+    // Delete the question
+    await db.collection('questions').doc(req.params.id).delete();
+
+    res.json({ message: 'Question deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Unable to delete question' });
+  }
+});
+
 module.exports = router;

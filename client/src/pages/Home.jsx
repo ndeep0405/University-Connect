@@ -28,6 +28,11 @@ const Home = () => {
     await fetchQuestions();
   };
 
+  const handleDeleteQuestion = (questionId) => {
+    setQuestions(questions.filter((q) => (q.id || q._id) !== questionId));
+    console.log('Question removed from list:', questionId);
+  };
+
   return (
     <div className="space-y-6">
       <div className="rounded-[2rem] border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-sky-50 p-8 shadow-xl shadow-slate-200/50">
@@ -77,7 +82,7 @@ const Home = () => {
       </form>
 
       <div className="grid gap-4 md:grid-cols-2">
-        {questions.length > 0 ? questions.map((question) => <QuestionCard key={question.id || question._id} question={question} />) : (
+        {questions.length > 0 ? questions.map((question) => <QuestionCard key={question.id || question._id} question={question} onDelete={handleDeleteQuestion} />) : (
           <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-500">No questions found.</div>
         )}
       </div>

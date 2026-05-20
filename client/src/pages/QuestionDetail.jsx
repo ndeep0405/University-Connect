@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 
 const QuestionDetail = () => {
   const { id } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const initialQuestion = location.state?.question || null;
   const [question, setQuestion] = useState(initialQuestion);
   const [answerBody, setAnswerBody] = useState('');
   const [fetchError, setFetchError] = useState('');
   const [submitError, setSubmitError] = useState('');
+  const [deleteError, setDeleteError] = useState('');
   const [loading, setLoading] = useState(!initialQuestion);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const user = localStorage.getItem('uc_user') ? JSON.parse(localStorage.getItem('uc_user')) : null;
 
   const loadQuestion = async () => {
@@ -79,7 +82,31 @@ const QuestionDetail = () => {
     }
   };
 
+  const handleDeleteQuestion = async () => {
+    if (!window.confirm('Are you sure you want to delete this question? This action cannot be undone.')) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError('');
+    try {
+      console.log('Deleting question', id);
+      await api.delete(`/questions/${id}`);
+      console.log('Question deleted successfully');
+      navigate('/', { replace: true });
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || 'Unable to delete question';
+      console.error('Delete error:', errorMsg);
+      setDeleteError(errorMsg);
+      setIsDeleting(false);
+    }
+  };
+
   const answers = Array.from(new Map((question?.answers || []).map((answer) => [answer.id || answer._id, answer])).values());
+
+  const isQuestionOwner = user?.id === question?.postedBy?.id;
+  const isAdmin = user?.role === 'admin';
+  const canDeleteQuestion = isQuestionOwner || isAdmin;
 
   if (loading && !question) {
     return <div className="text-center text-slate-500">Loading question...</div>;
@@ -101,6 +128,11 @@ const QuestionDetail = () => {
             {fetchError}
           </div>
         )}
+        {deleteError && (
+          <div className="mb-5 rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            ⚠️ {deleteError}
+          </div>
+        )}
         <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500 mb-5">
           <span className="rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-700">{question.department}</span>
           <span className="rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-700">{question.subject}</span>
@@ -110,7 +142,7 @@ const QuestionDetail = () => {
             <h1 className="text-3xl font-semibold tracking-tight text-slate-900">{question.title}</h1>
             <p className="mt-4 text-slate-700 leading-7 whitespace-pre-line">{question.body}</p>
           </div>
-          <div className="rounded-3xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-600 shadow-sm">
+          <div className="rounded-3xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-600 shadow-sm min-w-fit">
             <div className="flex items-center gap-2 mb-3">
               <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-100 text-sky-700 font-semibold">{answers.length}</span>
               <div>
@@ -121,6 +153,19 @@ const QuestionDetail = () => {
             <div className="border-t border-slate-200 pt-4 text-sm text-slate-500">
               Posted by <span className="font-medium text-slate-900">{question.postedBy?.name}</span>
             </div>
+            {canDeleteQuestion && (
+              <button
+                onClick={handleDeleteQuestion}
+                disabled={isDeleting}
+                className={`w-full mt-4 rounded-full px-4 py-2 font-semibold transition text-sm ${
+                  isDeleting
+                    ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                    : 'bg-rose-600 text-white hover:bg-rose-700'
+                }`}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete Question'}
+              </button>
+            )}
           </div>
         </div>
       </div>
