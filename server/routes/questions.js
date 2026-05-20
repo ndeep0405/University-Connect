@@ -123,21 +123,32 @@ router.get('/:id', async (req, res) => {
 
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
+    console.log(`[DELETE] Attempting to delete question: ${req.params.id}`);
+    console.log(`[DELETE] User: ${req.user.id}, Role: ${req.user.role}`);
+
     const doc = await db.collection('questions').doc(req.params.id).get();
     if (!doc.exists) {
+      console.log(`[DELETE] Question not found: ${req.params.id}`);
       return res.status(404).json({ message: 'Question not found' });
     }
 
     const question = doc.data();
+    console.log(`[DELETE] Question creator: ${question.postedBy}`);
+    
     const isOwner = question.postedBy === req.user.id;
     const isAdmin = req.user.role === 'admin';
 
+    console.log(`[DELETE] Is owner: ${isOwner}, Is admin: ${isAdmin}`);
+
     if (!isOwner && !isAdmin) {
+      console.log(`[DELETE] Permission denied for user ${req.user.id}`);
       return res.status(403).json({ message: 'You do not have permission to delete this question' });
     }
 
     // Delete all answers for this question
     const answersSnapshot = await db.collection('answers').where('questionId', '==', req.params.id).get();
+    console.log(`[DELETE] Found ${answersSnapshot.size} answers to delete`);
+    
     for (const answerDoc of answersSnapshot.docs) {
       await answerDoc.ref.delete();
     }
@@ -145,10 +156,11 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     // Delete the question
     await db.collection('questions').doc(req.params.id).delete();
 
+    console.log(`[DELETE] Successfully deleted question: ${req.params.id}`);
     res.json({ message: 'Question deleted successfully' });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Unable to delete question' });
+    console.error(`[DELETE ERROR] ${error.message}`, error);
+    res.status(500).json({ message: `Unable to delete question: ${error.message}` });
   }
 });
 

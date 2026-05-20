@@ -24,14 +24,27 @@ const QuestionCard = ({ question, onDelete }) => {
     setError('');
     try {
       console.log('Deleting question', questionId);
-      await api.delete(`/questions/${questionId}`);
-      console.log('Question deleted successfully');
+      const response = await api.delete(`/questions/${questionId}`);
+      console.log('Question deleted successfully', response.data);
       if (onDelete) {
         onDelete(questionId);
       }
     } catch (err) {
-      const errorMsg = err.response?.data?.message || 'Unable to delete question';
-      console.error('Delete error:', errorMsg);
+      // Extract error message from various possible locations
+      const errorMsg = 
+        err.response?.data?.message || 
+        err.response?.statusText || 
+        err.message || 
+        'Unable to delete question';
+      
+      console.error('Delete error:', {
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        data: err.response?.data,
+        message: err.message,
+        fullError: err
+      });
+      
       setError(errorMsg);
       setIsDeleting(false);
     }

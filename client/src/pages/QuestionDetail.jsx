@@ -91,12 +91,25 @@ const QuestionDetail = () => {
     setDeleteError('');
     try {
       console.log('Deleting question', id);
-      await api.delete(`/questions/${id}`);
-      console.log('Question deleted successfully');
+      const response = await api.delete(`/questions/${id}`);
+      console.log('Question deleted successfully', response.data);
       navigate('/', { replace: true });
     } catch (err) {
-      const errorMsg = err.response?.data?.message || 'Unable to delete question';
-      console.error('Delete error:', errorMsg);
+      // Extract error message from various possible locations
+      const errorMsg = 
+        err.response?.data?.message || 
+        err.response?.statusText || 
+        err.message || 
+        'Unable to delete question';
+      
+      console.error('Delete error:', {
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        data: err.response?.data,
+        message: err.message,
+        fullError: err
+      });
+      
       setDeleteError(errorMsg);
       setIsDeleting(false);
     }
