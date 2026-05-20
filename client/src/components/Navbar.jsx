@@ -7,16 +7,61 @@ const Navbar = () => {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem('uc_user');
-    if (stored) {
-      setUser(JSON.parse(stored));
-    }
+    const loadUser = () => {
+      const stored = localStorage.getItem('uc_user');
+      if (stored) {
+        try {
+          setUser(JSON.parse(stored));
+        } catch (err) {
+          console.error('Failed to parse user from localStorage', err);
+          setUser(null);
+        }
+      } else {
+        setUser(null);
+      }
+    };
+
+    // Load user initially
+    loadUser();
+
+    // Listen for storage changes from other tabs
+    const handleStorageChange = (e) => {
+      if (e.key === 'uc_user' || e.key === 'uc_token') {
+        loadUser();
+      }
+    };
+
+    // Hook into localStorage.setItem to detect changes in same tab
+    const originalSetItem = localStorage.setItem;
+    localStorage.setItem = function(key, value) {
+      if (key === 'uc_user' || key === 'uc_token') {
+        loadUser();
+      }
+      originalSetItem.apply(this, arguments);
+    };
+
+    const originalRemoveItem = localStorage.removeItem;
+    localStorage.removeItem = function(key) {
+      if (key === 'uc_user' || key === 'uc_token') {
+        setUser(null);
+      }
+      originalRemoveItem.apply(this, arguments);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      localStorage.setItem = originalSetItem;
+      localStorage.removeItem = originalRemoveItem;
+    };
   }, []);
 
   const logout = () => {
     localStorage.removeItem('uc_token');
     localStorage.removeItem('uc_user');
-    navigate('/login');
+    setUser(null);
+    navigate('/login', { replace: true });
   };
 
   return (

@@ -18,9 +18,19 @@ const Login = () => {
       console.log(`Attempting login to ${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/auth/login`);
       const { data } = await api.post('/auth/login', form);
       console.log('Login successful', { user: data.user?.email });
+      
+      // Store token and user
+      console.log('Storing token and user in localStorage');
       localStorage.setItem('uc_token', data.token);
       localStorage.setItem('uc_user', JSON.stringify(data.user));
-      navigate('/');
+      
+      console.log('Token stored:', localStorage.getItem('uc_token')?.substring(0, 20) + '...');
+      console.log('User stored:', localStorage.getItem('uc_user'));
+      
+      // Navigate to home page
+      console.log('Navigating to home page');
+      navigate('/', { replace: true });
+      
     } catch (err) {
       const errorMsg = err.response?.data?.message || err.response?.data?.error || 'Login failed. Please try again.';
       console.error('Login error:', err.response?.data || err.message);

@@ -90,8 +90,12 @@ const QuestionDetail = () => {
     setIsDeleting(true);
     setDeleteError('');
     try {
+      const deleteUrl = `/questions/${id}`;
+      const fullUrl = `${api.defaults.baseURL}${deleteUrl}`;
       console.log('Deleting question', id);
-      const response = await api.delete(`/questions/${id}`);
+      console.log('DELETE URL:', deleteUrl);
+      console.log('Full URL:', fullUrl);
+      const response = await api.delete(deleteUrl);
       console.log('Question deleted successfully', response.data);
       navigate('/', { replace: true });
     } catch (err) {
@@ -105,6 +109,8 @@ const QuestionDetail = () => {
       console.error('Delete error:', {
         status: err.response?.status,
         statusText: err.response?.statusText,
+        url: err.config?.url,
+        baseURL: err.config?.baseURL,
         data: err.response?.data,
         message: err.message,
         fullError: err
